@@ -1,0 +1,560 @@
+// This is your Prisma schema file, #14762 - follow issue
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["interactiveTransactions", "fullTextSearch", "fullTextIndex"]
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum AccountType {
+  NormalAccount
+  GoogleAccount
+  GithubAccount
+}
+
+enum Role {
+  Admin
+  User
+}
+
+model User {
+  id                     Int                    @id @default(autoincrement())
+  email                  String?                @unique
+  username               String?                @unique
+  password               String?
+  googleId               String?                @unique
+  githubId               String?                @unique
+  accountType            AccountType            @default(NormalAccount)
+  accountVerified        Boolean                @default(false)
+  accessToken            String?
+  refreshToken           String?
+  tfaEnabled             Boolean                @default(false)
+  tfaSecret              String?                @unique
+  fullname               String
+  role                   Role                   @default(User)
+  currentAvatarId        Int?                   @unique
+  currentAvatar          UserAvatar?            @relation(fields: [currentAvatarId], references: [id], name: "CurrentAvatarOfUser")
+  userAvatars            UserAvatar[]           @relation(name: "AllAvatarOfUser")
+  deliveryAddresses      DeliveryAddress[]      @relation(name: "AddressesOfUser")
+  orders                 Order[]                @relation(name: "OrdersOfUser")
+  notificationSpecifices NotificationSpecific[] @relation(name: "NotificationSpecific")
+  chatRoom               Chatroom?              @relation(name: "CustomerChat")
+  ratings                Rating[]               @relation(name: "UserRatingProduct")
+  productComments        ProductComment[]       @relation(name: "UserCommentProduct")
+  userVouchers           UserVoucher[]          @relation(name: "VouchersOfUser")
+  systemReports          SystemReport[]         @relation(name: "SystemReport")
+  reportUsers            UserReport[]           @relation(name: "ReporterReportUser")
+  hasReports             UserReport[]           @relation(name: "UserIsReportee")
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
+
+  @@map("users")
+}
+
+model UploadedFile {
+  id             Int             @id @default(autoincrement())
+  url            String
+  key            String          @unique
+  UserAvatar     UserAvatar?     @relation(name: "FileIsAvatar")
+  CategoryImage  CategoryImage?  @relation(name: "FileIsCategoryImage")
+  ProductImage   ProductImage?   @relation(name: "FileIsProductImage")
+  BlogAttachment BlogAttachment? @relation(name: "FileIsBlogAttachment")
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@map("uploaded_files")
+}
+
+model UserAvatar {
+  id            Int          @id @default(autoincrement())
+  fileId        Int          @unique
+  file          UploadedFile @relation(fields: [fileId], references: [id], name: "FileIsAvatar", onDelete: Cascade)
+  ownerId       Int
+  owner         User         @relation(fields: [ownerId], references: [id], name: "AllAvatarOfUser")
+  currentOfUser User?        @relation(name: "CurrentAvatarOfUser")
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@map("user_avatars")
+}
+
+enum CategoryStatus {
+  Featured
+  Active
+  Inactive
+}
+
+model Category {
+  id               Int             @id @default(autoincrement())
+  name             String
+  shortDescription String?
+  fullDescription  String?
+  slug             String?         @unique
+  status           CategoryStatus  @default(Inactive)
+  thumbnailId      Int?            @unique
+  thumbnail        CategoryImage?  @relation(fields: [thumbnailId], references: [id], name: "CategoryThumbnail")
+  categoryImages   CategoryImage[] @relation(name: "CategoryImages")
+  products         Product[]       @relation(name: "CategoryOfProduct")
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@fulltext([name])
+  @@map("categories")
+}
+
+model CategoryImage {
+  id                  Int          @id @default(autoincrement())
+  fileId              Int          @unique
+  file                UploadedFile @relation(fields: [fileId], references: [id], name: "FileIsCategoryImage", onDelete: Cascade)
+  categoryId          Int
+  category            Category     @relation(fields: [categoryId], references: [id], name: "CategoryImages", onDelete: Cascade)
+  thumbnailOfCategory Category?    @relation(name: "CategoryThumbnail")
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  @@map("category_images")
+}
+
+model Tag {
+  id        Int       @id @default(autoincrement())
+  name      String    @unique
+  products  Product[]
+  blogs     Blog[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@fulltext([name])
+  @@map("tags")
+}
+
+enum ProductStatus {
+  CommingSoon
+  Available
+  OutOfStock
+  StopBusiness
+  Inactive
+}
+
+model Product {
+  id                 Int                    @id @default(autoincrement())
+  code               String                 @unique
+  name               String
+  shortDescription   String?
+  fullDescription    String?
+  slug               String?                @unique
+  categoryId         Int?
+  category           Category?              @relation(fields: [categoryId], references: [id], name: "CategoryOfProduct")
+  thumbnailId        Int?                   @unique
+  thumbnail          ProductImage?          @relation(fields: [thumbnailId], references: [id], name: "ProductThumbnail")
+  productImages      ProductImage[]         @relation(name: "ProductImages")
+  listedPrice        Int
+  salePrice          Int
+  quantityInStock    Int                    @default(0)
+  status             ProductStatus          @default(Inactive)
+  tags               Tag[]
+  productDetails     ProductDetail[]        @relation(name: "ProductDetails")
+  productImports     ProductImportHistory[] @relation(name: "ProductImports")
+  orderDetails       OrderDetail[]
+  productComments    ProductComment[]       @relation(name: "ProductComment")
+  flashSales         FlashSale[]            @relation(name: "ProductInFlashSale")
+  currentFlashSaleId Int?                   @unique
+  currentFlashSale   FlashSale?             @relation(fields: [currentFlashSaleId], references: [id], name: "CurrentFlashSale")
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+
+  @@fulltext([name])
+  @@map("products")
+}
+
+model ProductImage {
+  id                 Int          @id @default(autoincrement())
+  fileId             Int          @unique
+  file               UploadedFile @relation(fields: [fileId], references: [id], name: "FileIsProductImage", onDelete: Cascade)
+  productId          Int
+  product            Product      @relation(fields: [productId], references: [id], name: "ProductImages", onDelete: Cascade)
+  thumbnailOfProduct Product?     @relation(name: "ProductThumbnail")
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  @@map("product_images")
+}
+
+model ProductDetail {
+  id             Int      @id @default(autoincrement())
+  productId      Int
+  product        Product  @relation(fields: [productId], references: [id], name: "ProductDetails", onDelete: Cascade)
+  attribute      String
+  description    String
+  subDescription String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([productId, attribute])
+  @@map("product_details")
+}
+
+model ProductImportHistory {
+  id             Int      @id @default(autoincrement())
+  productId      Int
+  product        Product  @relation(fields: [productId], references: [id], name: "ProductImports", onDelete: Cascade)
+  importQuantity Int
+  importPrice    Int
+  description    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("product_import_histories")
+}
+
+enum AddressType {
+  Home
+  Office
+}
+
+model DeliveryAddress {
+  id            Int         @id @default(autoincrement())
+  userId        Int
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade, name: "AddressesOfUser")
+  receiverName  String
+  phoneNumber   String
+  addressDetail String
+  addressType   AddressType @default(Home)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@map("delivery_addresses")
+}
+
+enum OrderStatus {
+  Waiting
+  Confirmed
+  Shipping
+  Completed
+  Canceled
+  Unclaimed
+}
+
+model Order {
+  id               Int           @id @default(autoincrement())
+  code             String        @unique
+  userId           Int
+  user             User          @relation(fields: [userId], references: [id], name: "OrdersOfUser")
+  receiverName     String
+  orderPhone       String
+  orderAddress     String
+  orderAddressType AddressType
+  reminder         String?
+  description      String?
+  status           OrderStatus   @default(Waiting)
+  voucherCode      String?
+  orderTotalPrice  Int
+  orderDiscount    Int
+  orderFinalPrice  Int
+  confirmedAt      DateTime?
+  shippedAt        DateTime?
+  completedAt      DateTime?
+  canceledAt       DateTime?
+  orderDetails     OrderDetail[]
+  orderPayment     OrderPayment?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@map("orders")
+}
+
+model OrderDetail {
+  id                 Int      @id @default(autoincrement())
+  orderId            Int
+  order              Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId          Int
+  product            Product  @relation(fields: [productId], references: [id])
+  currentListedPrice Int
+  currentSalePrice   Int
+  quantity           Int
+  rating             Rating?  @relation(name: "RatingPurchasedProduct")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@map("order_details")
+}
+
+enum PaymentMethod {
+  COD
+  Online
+}
+
+enum PaymentStatus {
+  Waiting
+  Incomplete
+  Completed
+  Refunded
+}
+
+model OrderPayment {
+  id            Int           @id @default(autoincrement())
+  orderId       Int           @unique
+  order         Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  paymentMethod PaymentMethod @default(COD)
+  status        PaymentStatus @default(Waiting)
+  paymentValue  Int
+  paymentCode   String?
+  transactionNo String?
+  paymentedAt   DateTime?
+  refundedAt    DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@map("order_payments")
+}
+
+enum VoucherUnit {
+  Percent
+  Money
+}
+
+enum VoucherType {
+  General
+  Personal
+}
+
+enum VoucherStatus {
+  NotUsed
+  Used
+}
+
+model Voucher {
+  id             Int           @id @default(autoincrement())
+  code           String        @unique
+  value          Int
+  unit           VoucherUnit   @default(Percent)
+  maxDiscount    Int?
+  minOrderPrice  Int?
+  startAt        DateTime
+  dueAt          DateTime
+  type           VoucherType   @default(General)
+  remainQuantity Int?
+  usersOfVoucher UserVoucher[] @relation(name: "VoucherUser")
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@map("vouchers")
+}
+
+model UserVoucher {
+  id        Int           @id @default(autoincrement())
+  userId    Int
+  user      User          @relation(fields: [userId], references: [id], name: "VouchersOfUser", onDelete: Cascade)
+  voucherId Int
+  voucher   Voucher       @relation(fields: [voucherId], references: [id], name: "VoucherUser", onDelete: Cascade)
+  status    VoucherStatus @default(NotUsed)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@unique([userId, voucherId])
+  @@map("user_vouchers")
+}
+
+model FlashSale {
+  id                Int      @id @default(autoincrement())
+  productId         Int
+  product           Product  @relation(fields: [productId], references: [id], name: "ProductInFlashSale", onDelete: Cascade)
+  previousPrice     Int
+  flashSalePrice    Int
+  previousQuantity  Int
+  flashSaleQuantity Int
+  startAt           DateTime
+  dueAt             DateTime
+  currentOfProduct  Product? @relation(name: "CurrentFlashSale")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("flash_sales")
+}
+
+enum NotificationType {
+  General
+  Specific
+}
+
+model Notification {
+  id                  Int                    @id @default(autoincrement())
+  title               String
+  content             String
+  description         String?
+  attachments         String?
+  type                NotificationType       @default(General)
+  notificationOfUsers NotificationSpecific[] @relation(name: "NotificationIsSpecific")
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+
+  @@map("notifications")
+}
+
+model NotificationSpecific {
+  id             Int          @id @default(autoincrement())
+  userId         Int
+  user           User         @relation(fields: [userId], references: [id], name: "NotificationSpecific")
+  notificationId Int
+  notification   Notification @relation(fields: [notificationId], references: [id], name: "NotificationIsSpecific")
+  seen           Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@map("notification_specifices")
+}
+
+model Chatroom {
+  id             Int           @id @default(autoincrement())
+  customerId     Int           @unique
+  customer       User          @relation(fields: [customerId], references: [id], name: "CustomerChat")
+  customerSeen   Boolean       @default(false)
+  customerReaded Boolean       @default(false)
+  adminSeen      Boolean       @default(false)
+  adminReaded    Boolean       @default(false)
+  chatMessages   ChatMessage[] @relation(name: "ChatMessages")
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@map("chatrooms")
+}
+
+enum MessageSenderType {
+  Customer
+  Admin
+}
+
+enum MessageType {
+  Text
+  Image
+  Video
+  Audio
+  File
+}
+
+model ChatMessage {
+  id         Int               @id @default(autoincrement())
+  chatroomId Int
+  chatroom   Chatroom          @relation(fields: [chatroomId], references: [id], name: "ChatMessages", onDelete: Cascade)
+  senderType MessageSenderType
+  type       MessageType       @default(Text)
+  content    String            @default("")
+  attachment String?
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+
+  @@map("chat_messages")
+}
+
+model Rating {
+  id            Int         @id @default(autoincrement())
+  userId        Int
+  user          User        @relation(fields: [userId], references: [id], name: "UserRatingProduct")
+  orderDetailId Int         @unique
+  orderDetail   OrderDetail @relation(fields: [orderDetailId], references: [id], name: "RatingPurchasedProduct")
+  stars         Int
+  content       String      @default("")
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@map("ratings")
+}
+
+model ProductComment {
+  id               Int              @id @default(autoincrement())
+  productId        Int
+  product          Product          @relation(fields: [productId], references: [id], name: "ProductComment")
+  userId           Int
+  user             User             @relation(fields: [userId], references: [id], name: "UserCommentProduct")
+  replyOfCommentId Int?
+  replyOfComment   ProductComment?  @relation(fields: [replyOfCommentId], references: [id], name: "ReplyComment", onDelete: Cascade)
+  replyComments    ProductComment[] @relation(name: "ReplyComment")
+  content          String
+  reports          UserReport[]     @relation(name: "ReportComment")
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  @@map("product_comments")
+}
+
+model Blog {
+  id              Int              @id @default(autoincrement())
+  title           String
+  description     String?
+  content         String
+  view            Int              @default(0)
+  thumbnail       String?
+  blogAttachments BlogAttachment[] @relation(name: "BlogAttachment")
+  tags            Tag[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@map("blogs")
+}
+
+model BlogAttachment {
+  id        Int          @id @default(autoincrement())
+  fileId    Int          @unique
+  file      UploadedFile @relation(fields: [fileId], references: [id], name: "FileIsBlogAttachment", onDelete: Cascade)
+  blogId    Int
+  blog      Blog         @relation(fields: [blogId], references: [id], name: "BlogAttachment", onDelete: Cascade)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@map("blog_attachments")
+}
+
+enum ReportStatus {
+  Waiting
+  Resolved
+  Refused
+}
+
+enum SystemReportType {
+  SystemError
+  ProductError
+  OrderError
+  PaymentError
+  Other
+}
+
+model SystemReport {
+  id             Int              @id @default(autoincrement())
+  reporterId     Int
+  reporter       User             @relation(fields: [reporterId], references: [id], name: "SystemReport")
+  type           SystemReportType
+  content        String
+  resolveStatus  ReportStatus     @default(Waiting)
+  resolveContent String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@map("system_reports")
+}
+
+enum UserReportType {
+  CommentViolation
+  Other
+}
+
+model UserReport {
+  id             Int             @id @default(autoincrement())
+  reporterId     Int
+  reporter       User            @relation(fields: [reporterId], references: [id], name: "ReporterReportUser")
+  reporteeId     Int
+  reportee       User            @relation(fields: [reporteeId], references: [id], name: "UserIsReportee")
+  type           UserReportType
+  commentId      Int?
+  comment        ProductComment? @relation(fields: [commentId], references: [id], name: "ReportComment")
+  content        String
+  resolveStatus  ReportStatus    @default(Waiting)
+  resolveContent String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@map("user_reports")
+}

@@ -1,0 +1,78 @@
+version: '3.8'
+
+services:
+  dev-db:
+    image: mysql
+    container_name: ${PROJECT_NAME}-mysql
+    command: --default-authentication-plugin=mysql_native_password
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_DATABASE}
+    ports:
+      - ${DB_PORT}:3306
+    networks:
+      - nestapp
+    volumes:
+      - nestapp:/var/lib/mysql
+
+  phpmyadmin:
+    image: phpmyadmin
+    container_name: ${PROJECT_NAME}-phpmyadmin
+    depends_on:
+      - dev-db
+    restart: unless-stopped
+    ports:
+      - 8989:80
+    environment:
+      PMA_HOST: dev-db
+      PMA_ARBITRARY: 1
+    networks:
+      - nestapp
+
+  minio:
+    image: quay.io/minio/minio
+    container_name: ${PROJECT_NAME}-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    ports:
+      - 9000:9000
+      - 9001:9001
+    networks:
+      - nestapp
+    environment:
+      - MINIO_ROOT_USER=admin
+      - MINIO_ROOT_PASSWORD=password
+    volumes:
+      - minio_data:/data
+
+  redis:
+    image: redis:alpine
+    container_name: ${PROJECT_NAME}-redis
+    restart: unless-stopped
+    tty: true
+    ports:
+      - 6380:6379
+    networks:
+      - nestapp
+    volumes:
+      - redis_data:/data
+
+  redisinsight:
+    container_name: ${PROJECT_NAME}-redisinsight
+    image: redislabs/redisinsight
+    ports:
+      - 6390:8001
+    networks:
+      - nestapp
+    volumes:
+      - redisinsight:/db
+
+networks:
+  nestapp:
+
+volumes:
+  nestapp:
+  minio_data:
+  redis_data:
+  redisinsight:

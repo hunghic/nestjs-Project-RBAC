@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  api:
+    image: registry.gitlab.com/khiem.ngg/nestjs-base-app:latest
+    container_name: ${PROJECT_NAME}-api
+    env_file: .env
+    restart: always
+    ports:
+      - ${DOMAIN_PORT}:${PORT}
+    networks:
+      - nestapp
+
+  prod-db:
+    image: mysql
+    container_name: ${PROJECT_NAME}-mysql
+    command: --default-authentication-plugin=mysql_native_password
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_DATABASE}
+    ports:
+      - ${DB_PORT}:3306
+    networks:
+      - nestapp
+    volumes:
+      - nestapp:/var/lib/mysql
+
+networks:
+  nestapp:
+
+
+volumes:
+  nestapp:

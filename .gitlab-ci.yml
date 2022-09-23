@@ -1,0 +1,42 @@
+stages:
+  - test
+  - build
+  - deploy
+
+test:
+  image: node:16-alpine
+  stage: test
+  script:
+    - yarn install
+    - yarn test
+
+build-and-push:
+  image: docker:latest
+  stage: build
+  services:
+    - docker:dind
+  variables:
+    TAG_LATEST: $CI_REGISTRY_IMAGE:latest
+    TAG_COMMIT: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+  script:
+    - docker build -t $TAG_COMMIT -t $TAG_LATEST .
+    - docker push $TAG_COMMIT
+    - docker push $TAG_LATEST
+  rules:
+    - if: $CI_COMMIT_REF_NAME == "master"
+      exists:
+        - Dockerfile
+
+deploy:
+  image: alpine:latest
+  stage: deploy
+  before_script:
+    - chmod og= $ID_RSA
+    - apk update && apk add openssh-client
+  script:
+    - ssh -i $ID_RSA -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY"
+    - ssh -i $ID_RSA -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "cd ~/project/nest-shop && bash deploy.sh"
+  only:
+    - master

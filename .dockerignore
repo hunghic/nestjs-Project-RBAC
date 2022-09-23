@@ -1,0 +1,10 @@
+Dockerfile
+.dockerignore
+.git
+.gitignore
+.env
+node_modules/
+dist/
+coverage/
+documents/
+script/

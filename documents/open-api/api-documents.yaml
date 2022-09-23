@@ -1,0 +1,263 @@
+openapi: 3.0.0
+paths:
+  /auth/register:
+    post:
+      operationId: AuthController_register
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterDto'
+      responses:
+        '201':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+      tags: &ref_0
+        - Authentication
+  /auth/login:
+    post:
+      operationId: AuthController_login
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginDto'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+      tags: *ref_0
+  /auth/login/google:
+    get:
+      operationId: AuthController_loginGoogle
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags: *ref_0
+  /auth/login/google-callback:
+    get:
+      operationId: AuthController_googleAuthRedirect
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+      tags: *ref_0
+  /auth/login/github:
+    get:
+      operationId: AuthController_loginGithub
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags: *ref_0
+  /auth/login/github-callback:
+    get:
+      operationId: AuthController_githubAuthRedirect
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+      tags: *ref_0
+  /auth/logout:
+    post:
+      operationId: AuthController_logout
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+      tags: *ref_0
+      security:
+        - bearer: []
+  /auth/refresh-token:
+    post:
+      operationId: AuthController_refreshToken
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenDto'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+      tags: *ref_0
+  /users/profile:
+    get:
+      operationId: UsersController_getUserProfile
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+      tags: &ref_1
+        - Users
+      security:
+        - bearer: []
+    patch:
+      operationId: UsersController_updateUserProfile
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+      tags: *ref_1
+      security:
+        - bearer: []
+  /users:
+    get:
+      operationId: UsersController_getListUsers
+      parameters:
+        - name: keyword
+          required: false
+          in: query
+          schema:
+            type: string
+        - name: skip
+          required: false
+          in: query
+          schema:
+            default: 0
+            type: number
+        - name: take
+          required: false
+          in: query
+          schema:
+            default: 10
+            type: number
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+      tags: *ref_1
+      security:
+        - bearer: []
+  /users/welcome:
+    get:
+      operationId: UsersController_welcomeUser
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: string
+      tags: *ref_1
+  /users/profile/username:
+    patch:
+      operationId: UsersController_updateUserName
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+      tags: *ref_1
+      security:
+        - bearer: []
+  /users/{userId}/block:
+    delete:
+      operationId: UsersController_blockUser
+      parameters:
+        - name: userId
+          required: true
+          in: path
+          schema:
+            type: number
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+      tags: *ref_1
+      security:
+        - bearer: []
+info:
+  title: NestJS API Documentations
+  description: The API documentations for NestJs base app
+  version: '1.0'
+  contact: {}
+tags:
+  - name: NestJS
+    description: ''
+servers: []
+components:
+  securitySchemes:
+    bearer:
+      scheme: bearer
+      bearerFormat: JWT
+      type: http
+  schemas:
+    RegisterDto:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+          minLength: 6
+        fullname:
+          type: string
+      required:
+        - email
+        - password
+        - fullname
+    LoginDto:
+      type: object
+      properties:
+        identifier:
+          type: string
+        password:
+          type: string
+          minLength: 6
+      required:
+        - identifier
+        - password
+    RefreshTokenDto:
+      type: object
+      properties:
+        refreshToken:
+          type: string
+      required:
+        - refreshToken

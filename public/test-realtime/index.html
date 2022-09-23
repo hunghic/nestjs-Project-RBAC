@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nest Shop Realtime</title>
+  <style>
+    div.auth {
+      margin-top: 1rem;
+    }
+
+    div.auth.hidden {
+      display: none;
+    }
+
+    div.auth * {
+      display: block;
+    }
+
+    #input-token {
+      margin-bottom: 5px;
+    }
+  </style>
+</head>
+<body>
+  <h2>Test tính năng realtime</h2>
+  <h4><span id="user-id"></span></h4>
+  <button id="btn-test">Test message</button>
+  <div class="auth">
+    <label for="input-token">Nhập Token</label>
+    <input type="text" name="token" id="input-token">
+    <button id="btn-auth">Xác thực</button>
+  </div>
+</body>
+<script src="http://localhost:3000/socket.io/socket.io.js"></script>
+<script>
+  const socket = io('http://localhost:3000');
+
+  const socketReconnect = () => {
+    socket.disconnect();
+    socket.connect();
+  };
+
+  socket.onAny((event, ...args) => {
+    console.log('Socket event: ' + event, args)
+  })
+
+  socket.on('authentication', (data) => {
+    if (data.success) {
+      document.querySelector('div.auth').classList.add('hidden');
+      document.getElementById('user-id').innerText = data.message;
+      tokenInput.value = '';
+    } else {
+      alert(`Socket authentication failed: ${data.message}`);
+    }
+  });
+  
+  const buttonTest = document.getElementById('btn-test');
+  buttonTest.addEventListener('click', () => {
+    socket.emit('message', `Test socket lúc ${Date.now()}`, (response) => {
+      console.log(`Message: ${response}`);
+    });
+  });
+
+  const auth = false;
+  let accessToken = '';
+  const tokenInput = document.getElementById('input-token')
+  const buttonAuth = document.getElementById('btn-auth');
+  buttonAuth.addEventListener('click', () => {
+    accessToken = tokenInput.value;
+    if (accessToken) {
+      socketAuthentication(accessToken);
+    }
+  });
+
+  const socketAuthentication = (accessToken) => {
+    socket.auth = { accessToken };
+    socketReconnect();
+  };
+
+</script>
+</html>

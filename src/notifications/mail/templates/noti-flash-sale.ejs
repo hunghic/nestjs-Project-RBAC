@@ -1,0 +1,12 @@
+<p>Hey <%= locals.userName %>,</p>
+<p><b><%= locals.productName %></b> has a Flashsale at: <%= locals.flashSaleTime %></p>
+<ul>
+  <li><span>Listed price:</span><b> <%= locals.listedPrice %> vnd</b></li>
+  <li><span>Flashsale price:</span><b> <%= locals.flashSalePrice %> vnd</b></li>
+</ul>
+<p>Click here to shopping</p>
+<p>
+    <a href="<%= locals.flashSaleUrl %>">Ready!</a>
+</p>
+
+<p>If you don't want to receive flashsale notifications, please contact us.</p>

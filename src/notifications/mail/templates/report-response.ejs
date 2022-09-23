@@ -1,0 +1,18 @@
+<p>Hey <%= locals.userName %>,</p>
+<p>This is the admin's response to your report</p>
+<p>Report information:</p>
+<ul>
+  <li>Report type: <%= locals.reportType %></li>
+  <% if (locals.reportType === 'UserReport') { %>
+  <li>Reportee: <%= locals.reporteeName %></li>
+  <% } %>
+  <li>Report content: <%= locals.reportContent %></li>
+</ul>
+
+<p>Response information:</p>
+<ul>
+  <li>Resolve Status: <%= locals.resolveStatus %></li>
+  <li>Reason: <%= locals.reason %></li>
+</ul>
+
+<p>If you don't want to receive report response, please contact us.</p>
